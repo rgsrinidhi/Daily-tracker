@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daybook — daily tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171B16;
+    --surface: #1D2219;
+    --surface-2: #262C21;
+    --paper: #F1ECDE;
+    --ink: #E9E6D8;
+    --ink-dim: #9CA394;
+    --ink-faint: #6B7166;
+    --line: rgba(233,230,216,0.10);
+    --line-strong: rgba(233,230,216,0.20);
+
+    --plan: #5FA88C;
+    --plan-dim: #C7E4D9;
+    --declutter: #D97757;
+    --declutter-dim: #F3D3C4;
+    --done: #E0A458;
+    --done-dim: #F6DFB9;
+    --habit: #C48CD9;
+    --habit-dim: #E8D3F1;
+    --dash: #8C8FD9;
+    --dash-dim: #D6D7F1;
+
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 20px 80px;
+  }
+
+  .filebar{
+    width: 100%;
+    max-width: 980px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+  }
+  #file-status{ color: var(--ink-dim); }
+  #file-status.connected{ color: var(--plan-dim); }
+  .filebar-btns{ display: flex; gap: 6px; flex-wrap: wrap; }
+  .fb-btn{
+    all: unset;
+    cursor: pointer;
+    padding: 6px 11px;
+    border-radius: 6px;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .fb-btn:hover{ background: rgba(233,230,216,0.08); color: var(--ink); }
+
+  .app{
+    width: 100%;
+    max-width: 980px;
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    min-height: 640px;
+  }
+
+  .spine{
+    width: 92px;
+    flex-shrink: 0;
+    background: var(--surface-2);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+  }
+  .spine-brand{
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--ink);
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+  }
+  .tab{
+    all: unset;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 6px;
+    margin: 2px 8px;
+    border-radius: 8px;
+    color: var(--ink-faint);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1.3;
+    border-left: 3px solid transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tab:hover{ background: rgba(233,230,216,0.05); color: var(--ink); }
+  .tab.active{ background: rgba(233,230,216,0.07); color: var(--ink); }
+  .tab .dot{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor; opacity: 0.35;
+  }
+  .tab.active .dot{ opacity: 1; }
+  .tab[data-tab="plan"].active{ border-left-color: var(--plan); color: var(--plan-dim); }
+  .tab[data-tab="declutter"].active{ border-left-color: var(--declutter); color: var(--declutter-dim); }
+  .tab[data-tab="done"].active{ border-left-color: var(--done); color: var(--done-dim); }
+  .tab[data-tab="habits"].active{ border-left-color: var(--habit); color: var(--habit-dim); }
+  .tab[data-tab="dashboard"].active{ border-left-color: var(--dash); color: var(--dash-dim); }
+
+  .page{
+    flex: 1;
+    padding: 30px 40px 40px 44px;
+    position: relative;
+    min-width: 0;
+  }
+  .page::before{
+    content: "";
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+
+  .page-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 26px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .page-title{
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .page-sub{
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+  .today-badge{
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-align: right;
+  }
+  .streak{
+    font-size: 20px;
+    font-family: var(--font-display);
+    color: var(--done-dim);
+  }
+
+  .section{ display: none; }
+  .section.active{ display: block; }
+
+  .composer{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .composer input[type=text], .composer input[type=number], .composer textarea, .composer select{
+    flex: 1;
+    background: var(--paper);
+    color: #2A2A24;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 11px 13px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    min-width: 140px;
+  }
+  .composer textarea{ min-height: 68px; flex-basis: 100%; }
+  .composer input::placeholder, .composer textarea::placeholder{ color: #8A8676; }
+  .composer select{ flex: 0 0 150px; }
+
+  button.add-btn{
+    all: unset;
+    cursor: pointer;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    color: #1B1E17;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+  }
+  button.add-btn:hover{ filter: brightness(1.08); }
+  .add-btn.plan{ background: var(--plan); }
+  .add-btn.declutter{ background: var(--declutter); }
+  .add-btn.done{ background: var(--done); }
+  .add-btn.habit{ background: var(--habit); }
+
+  .list{ display: flex; flex-direction: column; gap: 8px; }
+  .card{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .card.done-item{ opacity: 0.6; }
+  .card .check{
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    border: 1.5px solid var(--line-strong);
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: transparent;
+    font-size: 12px;
+  }
+  .card .check.checked{ background: var(--plan); border-color: var(--plan); color: #12140F; }
+  .card .body{ flex: 1; min-width: 0; }
+  .card .text{
+    font-size: 14px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  .card.done-item .text{ text-decoration: line-through; }
+  .card .meta{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+  .badge-frombplan{
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--plan-dim);
+    background: rgba(95,168,140,0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .card .actions{ display: flex; gap: 6px; flex-shrink: 0; }
+  .card .actions button{
+    all: unset;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--ink-faint);
+    padding: 3px 7px;
+    border-radius: 5px;
+  }
+  .card .actions button:hover{ background: rgba(233,230,216,0.08); color: var(--ink); }
+  .card textarea.edit-box, .card input.edit-box{
+    width: 100%;
+    background: var(--paper);
+    color: #2A2A24;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    resize: vertical;
+  }
+
+  .empty{
+    color: var(--ink-faint);
+    font-size: 13px;
+    font-style: italic;
+    padding: 18px 4px;
+    font-family: var(--font-display);
+  }
+
+  .stat-row{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+  .stat{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat .num{ font-family: var(--font-display); font-size: 26px; font-weight: 600; }
+  .stat .label{ font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 3px; }
+
+  .dash-block{ margin-bottom: 26px; }
+  .dash-block h3{ font-family: var(--font-display); font-size: 15px; font-weight: 600; margin: 0 0 12px; color: var(--ink); }
+
+  .heatgrid{ display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; }
+  .heat-cell{ aspect-ratio: 1; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); position: relative; }
+  .heat-cell[data-lvl="1"]{ background: #4A3B22; }
+  .heat-cell[data-lvl="2"]{ background: #7A5C26; }
+  .heat-cell[data-lvl="3"]{ background: #B0812E; }
+  .heat-cell[data-lvl="4"]{ background: var(--done); }
+  .heat-cell:hover::after{
+    content: attr(data-tip);
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+    background: var(--paper); color: #2A2A24; font-family: var(--font-mono); font-size: 10px;
+    padding: 4px 7px; border-radius: 5px; white-space: nowrap; z-index: 5;
+  }
+
+  .barlist{ display: flex; flex-direction: column; gap: 8px; }
+  .bar-row{ display: flex; align-items: center; gap: 10px; }
+  .bar-row .bar-label{ width: 96px; flex-shrink: 0; font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar-row .bar-track{ flex: 1; height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+  .bar-row .bar-fill{ height: 100%; background: var(--dash); border-radius: 5px; }
+  .bar-row .bar-val{ width: 40px; text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim); }
+
+  .save-note{ font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 6px; min-height: 14px; }
+
+  /* habits */
+  .habit-card{ flex-direction: column; align-items: stretch; gap: 10px; }
+  .habit-top{ display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .habit-name{ font-size: 14px; font-weight: 500; }
+  .habit-type-badge{
+    font-family: var(--font-mono); font-size: 9.5px; color: var(--habit-dim);
+    background: rgba(196,140,217,0.15); padding: 1px 6px; border-radius: 4px; margin-left: 6px;
+  }
+  .habit-streak{ font-family: var(--font-mono); font-size: 12px; color: var(--done-dim); white-space: nowrap; }
+  .habit-strip{ display: flex; gap: 3px; }
+  .habit-cell{ flex: 1; aspect-ratio: 1; border-radius: 3px; background: var(--surface); border: 1px solid var(--line); position: relative; max-width: 20px; }
+  .habit-cell.on{ background: var(--habit); border-color: var(--habit); }
+  .habit-cell:hover::after{
+    content: attr(data-tip);
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+    background: var(--paper); color: #2A2A24; font-family: var(--font-mono); font-size: 10px;
+    padding: 4px 7px; border-radius: 5px; white-space: nowrap; z-index: 5;
+  }
+  .habit-controls{ display: flex; gap: 8px; align-items: center; }
+  .habit-controls input[type=number]{
+    width: 90px; background: var(--paper); color: #2A2A24; border: 1px solid var(--line-strong);
+    border-radius: 6px; padding: 7px 9px; font-family: var(--font-body); font-size: 13px;
+  }
+  .mini-btn{
+    all: unset; cursor: pointer; padding: 6px 12px; border-radius: 6px;
+    font-family: var(--font-mono); font-size: 11.5px; color: #1B1E17; background: var(--habit);
+  }
+  .mini-btn.off{ background: transparent; color: var(--ink-dim); border: 1px solid var(--line-strong); }
+  .habit-today-val{ font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-dim); }
+
+  @media (max-width: 640px){
+    .app{ flex-direction: column; }
+    .spine{ width: 100%; flex-direction: row; overflow-x: auto; padding: 12px; }
+    .spine-brand{ display: none; }
+    .tab{ flex-direction: row; margin: 0 4px; padding: 10px 12px; }
+    .page{ padding: 24px 18px; }
+    .page::before{ display: none; }
+    .stat-row{ grid-template-columns: repeat(2, 1fr); }
+    .heatgrid{ grid-template-columns: repeat(10, 1fr); }
+    .filebar{ font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="filebar">
+  <span id="file-status">No file connected — data lives in this tab only. Export to save it, import to load it back.</span>
+  <div class="filebar-btns">
+    <button class="fb-btn" id="btn-open">Open JSON…</button>
+    <button class="fb-btn" id="btn-saveas">Save as…</button>
+    <button class="fb-btn" id="btn-save-now" style="display:none;">Save now</button>
+    <button class="fb-btn" id="btn-export">Export</button>
+    <label class="fb-btn" for="import-input">Import</label>
+    <input type="file" id="import-input" accept="application/json" style="display:none">
+  </div>
+</div>
+
+<div class="app">
+  <nav class="spine">
+    <div class="spine-brand">Daybook</div>
+    <button class="tab active" data-tab="plan"><span class="dot"></span>Plan<br>tomorrow</button>
+    <button class="tab" data-tab="declutter"><span class="dot"></span>Declutter<br>thoughts</button>
+    <button class="tab" data-tab="done"><span class="dot"></span>Done<br>log</button>
+    <button class="tab" data-tab="habits"><span class="dot"></span>Habits</button>
+    <button class="tab" data-tab="dashboard"><span class="dot"></span>Dashboard</button>
+  </nav>
+
+  <main class="page">
+
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" id="page-title">Plan tomorrow</h1>
+        <p class="page-sub" id="page-sub">One line per thing. Keep it short.</p>
+      </div>
+      <div class="today-badge">
+        <div id="today-date">—</div>
+        <div class="streak" id="streak-num">0-day streak</div>
+      </div>
+    </div>
+
+    <section class="section active" id="section-plan">
+      <div class="composer">
+        <input type="text" id="plan-input" placeholder="e.g. Finish 2 LeetCode mediums, email Prof. X" />
+        <button class="add-btn plan" id="plan-add">+ add</button>
+      </div>
+      <div class="list" id="plan-list"></div>
+    </section>
+
+    <section class="section" id="section-declutter">
+      <div class="composer">
+        <textarea id="declutter-input" placeholder="Dump it here — worry, idea, random thought, anything."></textarea>
+        <button class="add-btn declutter" id="declutter-add">+ add</button>
+      </div>
+      <div class="list" id="declutter-list"></div>
+    </section>
+
+    <section class="section" id="section-done">
+      <div class="composer">
+        <input type="text" id="done-input" placeholder="What did you just finish?" />
+        <button class="add-btn done" id="done-add">+ log it</button>
+      </div>
+      <div class="list" id="done-list"></div>
+    </section>
+
+    <section class="section" id="section-habits">
+      <div class="composer">
+        <input type="text" id="habit-name-input" placeholder="Habit name, e.g. Read, Meditate, Water intake" />
+        <select id="habit-type-input">
+          <option value="boolean">Click done</option>
+          <option value="value">Track a value</option>
+        </select>
+        <input type="text" id="habit-unit-input" placeholder="unit, e.g. glasses, mins" style="display:none;">
+        <button class="add-btn habit" id="habit-add">+ add habit</button>
+      </div>
+      <div class="list" id="habits-list"></div>
+    </section>
+
+    <section class="section" id="section-dashboard">
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="stat-today">0</div><div class="label">DONE TODAY</div></div>
+        <div class="stat"><div class="num" id="stat-week">0</div><div class="label">DONE THIS WEEK</div></div>
+        <div class="stat"><div class="num" id="stat-month">0</div><div class="label">DONE THIS MONTH</div></div>
+        <div class="stat"><div class="num" id="stat-rate">0%</div><div class="label">PLAN COMPLETION</div></div>
+      </div>
+
+      <div class="dash-block">
+        <h3>Last 12 weeks</h3>
+        <div class="heatgrid" id="heatgrid"></div>
+      </div>
+
+      <div class="dash-block">
+        <h3>Done items per day — last 7 days</h3>
+        <div class="barlist" id="barlist"></div>
+      </div>
+
+      <div class="dash-block">
+        <h3>Habit streaks</h3>
+        <div class="barlist" id="habit-barlist"></div>
+      </div>
+    </section>
+
+    <div class="save-note" id="save-note"></div>
+  </main>
+</div>
+
+<script>
+(function(){
+  function defaultData(){
+    return { plans: {}, thoughts: [], done: {}, habits: [], habitLogs: {} };
+  }
+  let data = defaultData();
+  let fileHandle = null;
+  const supportsFS = typeof window.showOpenFilePicker === 'function';
+
+  const $ = (sel) => document.querySelector(sel);
+  const pad2 = n => String(n).padStart(2,'0');
+  const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  const todayKey = () => dateKey(new Date());
+  const tomorrowKey = () => { const d = new Date(); d.setDate(d.getDate()+1); return dateKey(d); };
+  const fmtDate = (key) => {
+    const [y,m,d] = key.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+  };
+  const fmtShort = (key) => {
+    const [y,m,d] = key.split('-').map(Number);
+    return new Date(y, m-1, d).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+  };
+  const fmtTime = (ts) => new Date(ts).toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const escapeHtml = (str) => { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; };
+
+  function saveNote(msg){
+    const el = $('#save-note');
+    el.textContent = msg;
+    if(msg) setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; }, 1800);
+  }
+
+  function setFileStatus(text, connected){
+    const el = $('#file-status');
+    el.textContent = text;
+    el.classList.toggle('connected', !!connected);
+    $('#btn-save-now').style.display = connected ? 'inline' : 'none';
+  }
+
+  // ---------- File System Access API ----------
+  async function openFile(){
+    if(!supportsFS){ $('#import-input').click(); return; }
+    try{
+      const [handle] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+      const file = await handle.getFile();
+      const text = await file.text();
+      data = Object.assign(defaultData(), JSON.parse(text));
+      fileHandle = handle;
+      setFileStatus('Connected: ' + handle.name + ' (autosaves on every change)', true);
+      renderAll();
+      saveNote('loaded ' + handle.name);
+    }catch(e){ if(e.name !== 'AbortError') saveNote('could not open that file'); }
+  }
+
+  async function saveAsFile(){
+    if(!supportsFS){ exportJson(); return; }
+    try{
+      const handle = await window.showSaveFilePicker({ suggestedName: 'daybook-data.json', types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+      fileHandle = handle;
+      await writeToHandle();
+      setFileStatus('Connected: ' + handle.name + ' (autosaves on every change)', true);
+    }catch(e){ if(e.name !== 'AbortError') saveNote('could not create that file'); }
+  }
+
+  async function writeToHandle(){
+    if(!fileHandle) return false;
+    try{
+      const writable = await fileHandle.createWritable();
+      await writable.write(JSON.stringify(data, null, 2));
+      await writable.close();
+      return true;
+    }catch(e){ return false; }
+  }
+
+  function exportJson(){
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'daybook-data.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    saveNote('exported daybook-data.json');
+  }
+
+  $('#import-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    try{
+      const text = await file.text();
+      data = Object.assign(defaultData(), JSON.parse(text));
+      fileHandle = null;
+      setFileStatus('Imported ' + file.name + ' — not connected, use Export or Save as… to keep changes.', false);
+      renderAll();
+      saveNote('imported ' + file.name);
+    }catch(err){ saveNote('could not read that file'); }
+    e.target.value = '';
+  });
+
+  $('#btn-open').addEventListener('click', openFile);
+  $('#btn-saveas').addEventListener('click', saveAsFile);
+  $('#btn-export').addEventListener('click', exportJson);
+  $('#btn-save-now').addEventListener('click', async () => {
+    const ok = await writeToHandle();
+    saveNote(ok ? 'saved' : 'save failed');
+  });
+
+  async function persist(){
+    if(fileHandle){
+      const ok = await writeToHandle();
+      saveNote(ok ? 'saved' : 'save failed — try Save as… again');
+    }
+    // if not connected, data still lives in memory; status bar already reminds the user
+  }
+
+  // ---------- tabs ----------
+  const titles = {
+    plan: ['Plan tomorrow', 'One line per thing. Keep it short.'],
+    declutter: ['Declutter your thoughts', 'No structure needed. Just get it out of your head.'],
+    done: ['Done log', 'Log things as you finish them — small or big.'],
+    habits: ['Habits', 'Click done, or log a value. Either way, streaks track consistency.'],
+    dashboard: ['Dashboard', 'How the days are actually adding up.']
+  };
+  document.querySelectorAll('.tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+      tab.classList.add('active');
+      const key = tab.dataset.tab;
+      $('#section-'+key).classList.add('active');
+      $('#page-title').textContent = titles[key][0];
+      $('#page-sub').textContent = titles[key][1];
+      if(key === 'dashboard') renderDashboard();
+    });
+  });
+
+  // ---------- PLAN ----------
+  function getPlanList(key){ if(!data.plans[key]) data.plans[key] = []; return data.plans[key]; }
+
+  function renderPlan(){
+    const key = tomorrowKey();
+    const list = getPlanList(key);
+    const container = $('#plan-list');
+    container.innerHTML = '';
+    if(list.length === 0){ container.innerHTML = `<div class="empty">Nothing planned for ${fmtDate(key)} yet.</div>`; return; }
+    list.forEach(item=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="check ${item.done ? 'checked' : ''}" data-id="${item.id}">${item.done ? '✓' : ''}</div>
+        <div class="body">
+          <div class="text">${escapeHtml(item.text)}</div>
+          <div class="meta">for ${fmtDate(key)}${item.done ? ' · logged to done' : ''}</div>
+        </div>
+        <div class="actions">
+          <button data-act="edit" data-id="${item.id}">edit</button>
+          <button data-act="del" data-id="${item.id}">delete</button>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  $('#plan-add').addEventListener('click', addPlan);
+  $('#plan-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addPlan(); });
+  function addPlan(){
+    const input = $('#plan-input');
+    const text = input.value.trim();
+    if(!text) return;
+    getPlanList(tomorrowKey()).push({ id: uid(), text, done:false, doneLogId:null, createdAt: Date.now() });
+    input.value = '';
+    renderPlan();
+    persist();
+  }
+
+  $('#plan-list').addEventListener('click', e=>{
+    const key = tomorrowKey();
+    const list = getPlanList(key);
+    const id = e.target.dataset.id;
+    if(!id) return;
+    if(e.target.classList.contains('check')){
+      const item = list.find(i=>i.id===id);
+      if(!item) return;
+      item.done = !item.done;
+      if(item.done && !item.doneLogId){
+        const doneId = uid();
+        getDoneList(todayKey()).push({ id: doneId, text: item.text, createdAt: Date.now(), fromPlan: true });
+        item.doneLogId = doneId;
+      } else if(!item.done && item.doneLogId){
+        const dl = getDoneList(todayKey());
+        data.done[todayKey()] = dl.filter(d=>d.id!==item.doneLogId);
+        item.doneLogId = null;
+      }
+      renderPlan(); renderDone(); renderTopBadge();
+      persist();
+    } else if(e.target.dataset.act === 'del'){
+      const item = list.find(i=>i.id===id);
+      if(item && item.doneLogId){
+        const dl = getDoneList(todayKey());
+        data.done[todayKey()] = dl.filter(d=>d.id!==item.doneLogId);
+      }
+      data.plans[key] = list.filter(i=>i.id!==id);
+      renderPlan(); renderDone(); persist();
+    } else if(e.target.dataset.act === 'edit'){
+      const item = list.find(i=>i.id===id);
+      if(!item) return;
+      const card = e.target.closest('.card');
+      card.querySelector('.body').innerHTML = `<textarea class="edit-box">${escapeHtml(item.text)}</textarea>`;
+      const ta = card.querySelector('.edit-box');
+      ta.focus();
+      const commit = ()=>{ item.text = ta.value.trim() || item.text; renderPlan(); persist(); };
+      ta.addEventListener('blur', commit);
+      ta.addEventListener('keydown', ev=>{ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); ta.blur(); } });
+    }
+  });
+
+  // ---------- DECLUTTER ----------
+  function renderDeclutter(){
+    const container = $('#declutter-list');
+    container.innerHTML = '';
+    const items = [...data.thoughts].sort((a,b)=>b.createdAt - a.createdAt);
+    if(items.length === 0){ container.innerHTML = `<div class="empty">Empty. Whatever's on your mind, drop it above.</div>`; return; }
+    items.forEach(item=>{
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="body">
+          <div class="text">${escapeHtml(item.text)}</div>
+          <div class="meta">${fmtDate(dateKey(new Date(item.createdAt)))} · ${fmtTime(item.createdAt)}</div>
+        </div>
+        <div class="actions">
+          <button data-act="edit" data-id="${item.id}">edit</button>
+          <button data-act="del" data-id="${item.id}">delete</button>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  $('#declutter-add').addEventListener('click', addDeclutter);
+  function addDeclutter(){
+    const input = $('#declutter-input');
+    const text = input.value.trim();
+    if(!text) return;
+    data.thoughts.push({ id: uid(), text, createdAt: Date.now() });
+    input.value = '';
+    renderDeclutter();
+    persist();
+  }
+
+  $('#declutter-list').addEventListener('click', e=>{
+    const id = e.target.dataset.id;
+    if(!id) return;
+    if(e.target.dataset.act === 'del'){
+      data.thoughts = data.thoughts.filter(i=>i.id!==id);
+      renderDeclutter(); persist();
+    } else if(e.target.dataset.act === 'edit'){
+      const item = data.thoughts.find(i=>i.id===id);
+      if(!item) return;
+      const card = e.target.closest('.card');
+      card.querySelector('.body').innerHTML = `<textarea class="edit-box">${escapeHtml(item.text)}</textarea>`;
+      const ta = card.querySelector('.edit-box');
+      ta.focus();
+      const commit = ()=>{ item.text = ta.value.trim() || item.text; renderDeclutter(); persist(); };
+      ta.addEventListener('blur', commit);
+    }
+  });
+
+  // ---------- DONE ----------
+  function getDoneList(key){ if(!data.done[key]) data.done[key] = []; return data.done[key]; }
+
+  function renderDone(){
+    const key = todayKey();
+    const list = getDoneList(key).slice().sort((a,b)=>b.createdAt - a.createdAt);
+    const container = $('#done-list');
+    container.innerHTML = '';
+    if(list.length === 0){ container.innerHTML = `<div class="empty">Nothing logged yet today. Add the first thing you finished.</div>`; return; }
+    list.forEach(item=>{
+      const card = document.createElement('div');
+      card.className = 'card done-item';
+      card.innerHTML = `
+        <div class="body">
+          <div class="text">${escapeHtml(item.text)}${item.fromPlan ? '<span class="badge-frombplan">from plan</span>' : ''}</div>
+          <div class="meta">${fmtTime(item.createdAt)}</div>
+        </div>
+        <div class="actions">
+          <button data-act="edit" data-id="${item.id}">edit</button>
+          <button data-act="del" data-id="${item.id}">delete</button>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  $('#done-add').addEventListener('click', addDone);
+  $('#done-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addDone(); });
+  function addDone(){
+    const input = $('#done-input');
+    const text = input.value.trim();
+    if(!text) return;
+    getDoneList(todayKey()).push({ id: uid(), text, createdAt: Date.now(), fromPlan:false });
+    input.value = '';
+    renderDone();
+    renderTopBadge();
+    persist();
+  }
+
+  $('#done-list').addEventListener('click', e=>{
+    const key = todayKey();
+    const list = getDoneList(key);
+    const id = e.target.dataset.id;
+    if(!id) return;
+    if(e.target.dataset.act === 'del'){
+      const item = list.find(i=>i.id===id);
+      data.done[key] = list.filter(i=>i.id!==id);
+      if(item && item.fromPlan){
+        const plist = getPlanList(tomorrowKey());
+        const pitem = plist.find(p=>p.doneLogId===id);
+        if(pitem){ pitem.done = false; pitem.doneLogId = null; }
+      }
+      renderDone(); renderPlan(); renderTopBadge(); persist();
+    } else if(e.target.dataset.act === 'edit'){
+      const item = list.find(i=>i.id===id);
+      if(!item) return;
+      const card = e.target.closest('.card');
+      card.querySelector('.body').innerHTML = `<textarea class="edit-box">${escapeHtml(item.text)}</textarea>`;
+      const ta = card.querySelector('.edit-box');
+      ta.focus();
+      const commit = ()=>{ item.text = ta.value.trim() || item.text; renderDone(); persist(); };
+      ta.addEventListener('blur', commit);
+    }
+  });
+
+  // ---------- HABITS ----------
+  $('#habit-type-input').addEventListener('change', e=>{
+    $('#habit-unit-input').style.display = e.target.value === 'value' ? '' : 'none';
+  });
+
+  function getHabitLog(habitId){ if(!data.habitLogs[habitId]) data.habitLogs[habitId] = {}; return data.habitLogs[habitId]; }
+
+  function computeHabitStreak(habit){
+    const log = getHabitLog(habit.id);
+    let streak = 0;
+    let cursor = new Date();
+    // if today isn't logged yet, streak still counts from yesterday backward
+    if(!(todayKey() in log)) cursor.setDate(cursor.getDate()-1);
+    while(true){
+      const key = dateKey(cursor);
+      if(key in log){ streak++; cursor.setDate(cursor.getDate()-1); }
+      else break;
+    }
+    return streak;
+  }
+
+  $('#habit-add').addEventListener('click', addHabit);
+  function addHabit(){
+    const nameInput = $('#habit-name-input');
+    const name = nameInput.value.trim();
+    if(!name) return;
+    const type = $('#habit-type-input').value;
+    const unit = $('#habit-unit-input').value.trim();
+    data.habits.push({ id: uid(), name, type, unit, createdAt: Date.now() });
+    nameInput.value = '';
+    $('#habit-unit-input').value = '';
+    renderHabits();
+    persist();
+  }
+
+  function renderHabits(){
+    const container = $('#habits-list');
+    container.innerHTML = '';
+    if(data.habits.length === 0){ container.innerHTML = `<div class="empty">No habits yet. Add one above — click-done or value-based.</div>`; return; }
+
+    const days14 = [];
+    for(let i=13;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); days14.push(dateKey(d)); }
+
+    data.habits.forEach(habit=>{
+      const log = getHabitLog(habit.id);
+      const streak = computeHabitStreak(habit);
+      const tKey = todayKey();
+      const loggedToday = tKey in log;
+
+      const strip = days14.map(k=>{
+        const has = k in log;
+        const tip = has ? `${fmtShort(k)}: ${habit.type==='value' ? log[k] + (habit.unit ? ' '+habit.unit : '') : 'done'}` : `${fmtShort(k)}: —`;
+        return `<div class="habit-cell ${has ? 'on' : ''}" data-tip="${tip}"></div>`;
+      }).join('');
+
+      let controlsHtml = '';
+      if(habit.type === 'boolean'){
+        controlsHtml = `<button class="mini-btn ${loggedToday ? '' : 'off'}" data-act="toggle-bool" data-id="${habit.id}">${loggedToday ? 'Done today ✓' : 'Mark done today'}</button>`;
+      } else {
+        controlsHtml = `
+          <input type="number" step="any" data-id="${habit.id}" class="habit-value-input" placeholder="${habit.unit || 'value'}" value="${loggedToday ? log[tKey] : ''}">
+          <button class="mini-btn" data-act="log-value" data-id="${habit.id}">${loggedToday ? 'Update' : 'Log'}</button>
+          ${loggedToday ? `<span class="habit-today-val">today: ${log[tKey]}${habit.unit ? ' '+habit.unit : ''}</span>` : ''}
+        `;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'card habit-card';
+      card.innerHTML = `
+        <div class="habit-top">
+          <div>
+            <span class="habit-name">${escapeHtml(habit.name)}</span>
+            <span class="habit-type-badge">${habit.type === 'value' ? 'value' : 'done'}</span>
+          </div>
+          <div class="habit-streak">${streak}-day streak</div>
+        </div>
+        <div class="habit-strip">${strip}</div>
+        <div class="habit-controls">${controlsHtml}</div>
+        <div class="actions" style="justify-content:flex-end;">
+          <button data-act="edit-habit" data-id="${habit.id}">rename</button>
+          <button data-act="del-habit" data-id="${habit.id}">delete</button>
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  $('#habits-list').addEventListener('click', e=>{
+    const id = e.target.dataset.id;
+    if(!id) return;
+    const habit = data.habits.find(h=>h.id===id);
+    if(e.target.dataset.act === 'toggle-bool'){
+      const log = getHabitLog(id);
+      const tKey = todayKey();
+      if(tKey in log) delete log[tKey]; else log[tKey] = true;
+      renderHabits(); renderTopBadge(); persist();
+    } else if(e.target.dataset.act === 'log-value'){
+      const card = e.target.closest('.habit-card');
+      const input = card.querySelector('.habit-value-input');
+      const val = parseFloat(input.value);
+      if(isNaN(val)) return;
+      const log = getHabitLog(id);
+      log[todayKey()] = val;
+      renderHabits(); persist();
+    } else if(e.target.dataset.act === 'del-habit'){
+      data.habits = data.habits.filter(h=>h.id!==id);
+      delete data.habitLogs[id];
+      renderHabits(); persist();
+    } else if(e.target.dataset.act === 'edit-habit'){
+      if(!habit) return;
+      const newName = prompt('Rename habit', habit.name);
+      if(newName && newName.trim()){ habit.name = newName.trim(); renderHabits(); persist(); }
+    }
+  });
+
+  // ---------- DASHBOARD ----------
+  function countForDay(key){ return (data.done[key] || []).length; }
+
+  function computeStreak(){
+    let streak = 0;
+    let cursor = new Date();
+    while(true){
+      const key = dateKey(cursor);
+      if(countForDay(key) > 0){ streak++; cursor.setDate(cursor.getDate()-1); }
+      else break;
+    }
+    return streak;
+  }
+
+  function renderTopBadge(){
+    $('#today-date').textContent = fmtDate(todayKey());
+    $('#streak-num').textContent = computeStreak() + '-day streak';
+  }
+
+  function renderDashboard(){
+    const now = new Date();
+    const todayC = countForDay(todayKey());
+
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    let weekC = 0;
+    for(let i=0;i<7;i++){ const d = new Date(startOfWeek); d.setDate(startOfWeek.getDate()+i); weekC += countForDay(dateKey(d)); }
+
+    let monthC = 0;
+    Object.keys(data.done).forEach(key=>{
+      const [y,m] = key.split('-').map(Number);
+      if(y === now.getFullYear() && m === now.getMonth()+1) monthC += data.done[key].length;
+    });
+
+    let totalPlans = 0, donePlans = 0;
+    Object.values(data.plans).forEach(list=>{ totalPlans += list.length; donePlans += list.filter(i=>i.done).length; });
+    const rate = totalPlans ? Math.round((donePlans/totalPlans)*100) : 0;
+
+    $('#stat-today').textContent = todayC;
+    $('#stat-week').textContent = weekC;
+    $('#stat-month').textContent = monthC;
+    $('#stat-rate').textContent = rate + '%';
+
+    const grid = $('#heatgrid');
+    grid.innerHTML = '';
+    for(let i=83;i>=0;i--){
+      const d = new Date(now); d.setDate(now.getDate()-i);
+      const key = dateKey(d);
+      const c = countForDay(key);
+      const lvl = c===0 ? 0 : c===1 ? 1 : c<=3 ? 2 : c<=5 ? 3 : 4;
+      const cell = document.createElement('div');
+      cell.className = 'heat-cell';
+      cell.dataset.lvl = lvl;
+      cell.dataset.tip = `${fmtDate(key)} · ${c} done`;
+      grid.appendChild(cell);
+    }
+
+    const bl = $('#barlist');
+    bl.innerHTML = '';
+    let max = 1;
+    const last7 = [];
+    for(let i=6;i>=0;i--){ const d = new Date(now); d.setDate(now.getDate()-i); const key = dateKey(d); const c = countForDay(key); max = Math.max(max, c); last7.push({ key, c }); }
+    last7.forEach(({key,c})=>{
+      const row = document.createElement('div');
+      row.className = 'bar-row';
+      const pct = Math.round((c/max)*100);
+      row.innerHTML = `<div class="bar-label">${fmtDate(key)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><div class="bar-val">${c}</div>`;
+      bl.appendChild(row);
+    });
+
+    const hbl = $('#habit-barlist');
+    hbl.innerHTML = '';
+    if(data.habits.length === 0){
+      hbl.innerHTML = `<div class="empty">No habits tracked yet.</div>`;
+    } else {
+      let hmax = 1;
+      const streaks = data.habits.map(h=>({ name: h.name, s: computeHabitStreak(h) }));
+      streaks.forEach(s=>hmax = Math.max(hmax, s.s));
+      streaks.sort((a,b)=>b.s - a.s).forEach(({name,s})=>{
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const pct = Math.round((s/hmax)*100);
+        row.innerHTML = `<div class="bar-label">${escapeHtml(name)}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%; background: var(--habit);"></div></div><div class="bar-val">${s}</div>`;
+        hbl.appendChild(row);
+      });
+    }
+  }
+
+  function renderAll(){
+    renderTopBadge();
+    renderPlan();
+    renderDeclutter();
+    renderDone();
+    renderHabits();
+    renderDashboard();
+  }
+
+  renderAll();
+})();
+</script>
+
+</body>
+</html>
