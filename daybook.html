@@ -192,6 +192,55 @@
   .section{ display: none; }
   .section.active{ display: block; }
 
+  .plan-datebar{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .plan-date-btn{
+    all: unset;
+    cursor: pointer;
+    padding: 7px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .plan-date-btn:hover{ background: rgba(233,230,216,0.06); color: var(--ink); }
+  .plan-date-btn.active{ background: var(--plan); color: #12140F; border-color: var(--plan); }
+  #plan-date-input{
+    background: var(--paper);
+    color: #2A2A24;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-family: var(--font-body);
+    font-size: 13px;
+  }
+  .plan-group{ margin-bottom: 18px; }
+  .plan-group-head{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .plan-group-head .g-label{
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .plan-group-head .g-count{
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+  }
+
   .composer{
     display: flex;
     gap: 8px;
@@ -237,6 +286,26 @@
   .add-btn.habit{ background: var(--habit); }
 
   .list{ display: flex; flex-direction: column; gap: 8px; }
+  .move-box{
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line-strong);
+  }
+  .move-box .move-date-input{
+    background: var(--paper);
+    color: #2A2A24;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-family: var(--font-body);
+    font-size: 12.5px;
+  }
+
   .card{
     background: var(--surface-2);
     border: 1px solid var(--line);
@@ -245,6 +314,7 @@
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    flex-wrap: wrap;
   }
   .card.done-item{ opacity: 0.6; }
   .card .check{
@@ -414,7 +484,7 @@
 <div class="app">
   <nav class="spine">
     <div class="spine-brand">Daybook</div>
-    <button class="tab active" data-tab="plan"><span class="dot"></span>Plan<br>tomorrow</button>
+    <button class="tab active" data-tab="plan"><span class="dot"></span>Plan</button>
     <button class="tab" data-tab="declutter"><span class="dot"></span>Declutter<br>thoughts</button>
     <button class="tab" data-tab="done"><span class="dot"></span>Done<br>log</button>
     <button class="tab" data-tab="habits"><span class="dot"></span>Habits</button>
@@ -435,6 +505,12 @@
     </div>
 
     <section class="section active" id="section-plan">
+      <div class="plan-datebar">
+        <button class="plan-date-btn active" data-choice="today" id="plan-date-today">Today</button>
+        <button class="plan-date-btn" data-choice="tomorrow" id="plan-date-tomorrow">Tomorrow</button>
+        <button class="plan-date-btn" data-choice="custom" id="plan-date-custom">Pick a date</button>
+        <input type="date" id="plan-date-input" style="display:none;">
+      </div>
       <div class="composer">
         <input type="text" id="plan-input" placeholder="e.g. Finish 2 LeetCode mediums, email Prof. X" />
         <button class="add-btn plan" id="plan-add">+ add</button>
@@ -618,7 +694,7 @@
 
   // ---------- tabs ----------
   const titles = {
-    plan: ['Plan tomorrow', 'One line per thing. Keep it short.'],
+    plan: ['Plan', 'One line per thing. Add it to today, tomorrow, or any date.'],
     declutter: ['Declutter your thoughts', 'No structure needed. Just get it out of your head.'],
     done: ['Done log', 'Log things as you finish them — small or big.'],
     habits: ['Habits', 'Click done, or log a value. Either way, streaks track consistency.'],
@@ -640,26 +716,72 @@
   // ---------- PLAN ----------
   function getPlanList(key){ if(!data.plans[key]) data.plans[key] = []; return data.plans[key]; }
 
+  let selectedPlanDate = todayKey();
+
+  function groupLabel(key){
+    if(key === todayKey()) return 'Today';
+    if(key === tomorrowKey()) return 'Tomorrow';
+    return fmtDate(key);
+  }
+
+  $('#plan-date-today').addEventListener('click', ()=>setPlanDateChoice('today'));
+  $('#plan-date-tomorrow').addEventListener('click', ()=>setPlanDateChoice('tomorrow'));
+  $('#plan-date-custom').addEventListener('click', ()=>setPlanDateChoice('custom'));
+  $('#plan-date-input').addEventListener('change', e=>{
+    if(e.target.value){ selectedPlanDate = e.target.value; }
+  });
+
+  function setPlanDateChoice(choice){
+    document.querySelectorAll('.plan-date-btn').forEach(b=>b.classList.remove('active'));
+    const dateInput = $('#plan-date-input');
+    if(choice === 'today'){
+      selectedPlanDate = todayKey();
+      $('#plan-date-today').classList.add('active');
+      dateInput.style.display = 'none';
+    } else if(choice === 'tomorrow'){
+      selectedPlanDate = tomorrowKey();
+      $('#plan-date-tomorrow').classList.add('active');
+      dateInput.style.display = 'none';
+    } else {
+      $('#plan-date-custom').classList.add('active');
+      dateInput.style.display = '';
+      if(!dateInput.value) dateInput.value = selectedPlanDate;
+      selectedPlanDate = dateInput.value || selectedPlanDate;
+      dateInput.focus();
+    }
+  }
+
   function renderPlan(){
-    const key = tomorrowKey();
-    const list = getPlanList(key);
     const container = $('#plan-list');
     container.innerHTML = '';
-    if(list.length === 0){ container.innerHTML = `<div class="empty">Nothing planned for ${fmtDate(key)} yet.</div>`; return; }
-    list.forEach(item=>{
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="check ${item.done ? 'checked' : ''}" data-id="${item.id}">${item.done ? '✓' : ''}</div>
-        <div class="body">
-          <div class="text">${escapeHtml(item.text)}</div>
-          <div class="meta">for ${fmtDate(key)}${item.done ? ' · logged to done' : ''}</div>
-        </div>
-        <div class="actions">
-          <button data-act="edit" data-id="${item.id}">edit</button>
-          <button data-act="del" data-id="${item.id}">delete</button>
-        </div>`;
-      container.appendChild(card);
+    const keys = Object.keys(data.plans).filter(k => getPlanList(k).length > 0).sort();
+    if(keys.length === 0){ container.innerHTML = `<div class="empty">Nothing planned yet. Pick a date above and add your first task.</div>`; return; }
+    keys.forEach(key=>{
+      const list = getPlanList(key);
+      const group = document.createElement('div');
+      group.className = 'plan-group';
+      const doneCount = list.filter(i=>i.done).length;
+      group.innerHTML = `<div class="plan-group-head"><span class="g-label">${groupLabel(key)}</span><span class="g-count">${fmtDate(key)} · ${doneCount}/${list.length} done</span></div>`;
+      const listEl = document.createElement('div');
+      listEl.className = 'list';
+      list.forEach(item=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="check ${item.done ? 'checked' : ''}" data-id="${item.id}" data-date="${key}">${item.done ? '✓' : ''}</div>
+          <div class="body">
+            <div class="text">${escapeHtml(item.text)}</div>
+            <div class="meta">${item.done ? 'logged to done' : ''}</div>
+          </div>
+          <div class="actions">
+            <button data-act="move" data-id="${item.id}" data-date="${key}">move</button>
+            <button data-act="edit" data-id="${item.id}" data-date="${key}">edit</button>
+            <button data-act="del" data-id="${item.id}" data-date="${key}">delete</button>
+          </div>`;
+        listEl.appendChild(card);
+      });
+      group.appendChild(listEl);
+      container.appendChild(group);
     });
   }
 
@@ -669,17 +791,21 @@
     const input = $('#plan-input');
     const text = input.value.trim();
     if(!text) return;
-    getPlanList(tomorrowKey()).push({ id: uid(), text, done:false, doneLogId:null, createdAt: Date.now() });
+    if($('#plan-date-custom').classList.contains('active')){
+      const dv = $('#plan-date-input').value;
+      if(dv) selectedPlanDate = dv;
+    }
+    getPlanList(selectedPlanDate).push({ id: uid(), text, done:false, doneLogId:null, createdAt: Date.now() });
     input.value = '';
     renderPlan();
     persist();
   }
 
   $('#plan-list').addEventListener('click', e=>{
-    const key = tomorrowKey();
-    const list = getPlanList(key);
     const id = e.target.dataset.id;
-    if(!id) return;
+    const key = e.target.dataset.date;
+    if(!id || !key) return;
+    const list = getPlanList(key);
     if(e.target.classList.contains('check')){
       const item = list.find(i=>i.id===id);
       if(!item) return;
@@ -695,6 +821,32 @@
       }
       renderPlan(); renderDone(); renderTopBadge();
       persist();
+    } else if(e.target.dataset.act === 'move'){
+      const item = list.find(i=>i.id===id);
+      if(!item) return;
+      const card = e.target.closest('.card');
+      if(card.querySelector('.move-box')) return; // already open
+      const box = document.createElement('div');
+      box.className = 'move-box';
+      const nextDay = new Date(); nextDay.setDate(nextDay.getDate() + (key === todayKey() ? 1 : 1));
+      box.innerHTML = `
+        <button class="mini-btn off" data-mv="today">Today</button>
+        <button class="mini-btn off" data-mv="tomorrow">Tomorrow</button>
+        <input type="date" class="move-date-input" value="${key}">
+        <button class="mini-btn" data-mv="confirm">Move</button>
+        <button class="mini-btn off" data-mv="cancel">Cancel</button>`;
+      card.appendChild(box);
+      const dateInput = box.querySelector('.move-date-input');
+      box.querySelector('[data-mv="today"]').addEventListener('click', ()=>{ dateInput.value = todayKey(); });
+      box.querySelector('[data-mv="tomorrow"]').addEventListener('click', ()=>{ dateInput.value = tomorrowKey(); });
+      box.querySelector('[data-mv="cancel"]').addEventListener('click', ()=>{ box.remove(); });
+      box.querySelector('[data-mv="confirm"]').addEventListener('click', ()=>{
+        const newKey = dateInput.value;
+        if(!newKey || newKey === key){ box.remove(); return; }
+        data.plans[key] = getPlanList(key).filter(i=>i.id!==id);
+        getPlanList(newKey).push(item);
+        renderPlan(); persist();
+      });
     } else if(e.target.dataset.act === 'del'){
       const item = list.find(i=>i.id===id);
       if(item && item.doneLogId){
@@ -814,9 +966,10 @@
       const item = list.find(i=>i.id===id);
       data.done[key] = list.filter(i=>i.id!==id);
       if(item && item.fromPlan){
-        const plist = getPlanList(tomorrowKey());
-        const pitem = plist.find(p=>p.doneLogId===id);
-        if(pitem){ pitem.done = false; pitem.doneLogId = null; }
+        for(const dKey of Object.keys(data.plans)){
+          const pitem = data.plans[dKey].find(p=>p.doneLogId===id);
+          if(pitem){ pitem.done = false; pitem.doneLogId = null; break; }
+        }
       }
       renderDone(); renderPlan(); renderTopBadge(); persist();
     } else if(e.target.dataset.act === 'edit'){
